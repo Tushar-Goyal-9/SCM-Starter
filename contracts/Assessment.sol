@@ -1,46 +1,40 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-//import "hardhat/console.sol";
-
 contract Assessment {
     address payable public owner;
     uint256 public balance;
 
-    event Deposit(uint256 amount);
+    event Deposit(uint256 amount, address indexed depositor);
     event Withdraw(uint256 amount);
+    event BalanceSet(uint256 newBalance);
+    event BalanceReset();
 
     constructor(uint initBalance) payable {
         owner = payable(msg.sender);
         balance = initBalance;
     }
 
-    function getBalance() public view returns(uint256){
+    modifier onlyOwner() {
+        require(msg.sender == owner, "You are not the owner");
+        _;
+    }
+
+    function getBalance() public view returns (uint256) {
         return balance;
     }
 
-    function deposit(uint256 _amount) public payable {
-        uint _previousBalance = balance;
+    function deposit() public payable onlyOwner {
+        require(msg.value > 0, "Deposit amount must be greater than zero");
 
-        // make sure this is the owner
-        require(msg.sender == owner, "You are not the owner of this account");
+        balance += msg.value;
 
-        // perform transaction
-        balance += _amount;
-
-        // assert transaction completed successfully
-        assert(balance == _previousBalance + _amount);
-
-        // emit the event
-        emit Deposit(_amount);
+        emit Deposit(msg.value, msg.sender);
     }
 
-    // custom error
     error InsufficientBalance(uint256 balance, uint256 withdrawAmount);
 
-    function withdraw(uint256 _withdrawAmount) public {
-        require(msg.sender == owner, "You are not the owner of this account");
-        uint _previousBalance = balance;
+    function withdraw(uint256 _withdrawAmount) public onlyOwner {
         if (balance < _withdrawAmount) {
             revert InsufficientBalance({
                 balance: balance,
@@ -48,13 +42,21 @@ contract Assessment {
             });
         }
 
-        // withdraw the given amount
         balance -= _withdrawAmount;
+        (bool success, ) = owner.call{value: _withdrawAmount}("");
+        require(success, "Withdraw failed");
 
-        // assert the balance is correct
-        assert(balance == (_previousBalance - _withdrawAmount));
-
-        // emit the event
         emit Withdraw(_withdrawAmount);
+    }
+// new functions
+
+    function setBalance(uint256 _newBalance) public onlyOwner {
+        balance = _newBalance;
+        emit BalanceSet(_newBalance);
+    }
+
+    function resetBalance() public onlyOwner {
+        balance = 0;
+        emit BalanceReset();
     }
 }

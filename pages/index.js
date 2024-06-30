@@ -53,11 +53,12 @@ export default function HomePage() {
     setATM(atmContract);
   }
 
-  const getBalance = async() => {
+  const getBalance = async () => {
     if (atm) {
-      setBalance((await atm.getBalance()).toNumber());
+      const balance = await atm.getBalance();
+      setBalance(ethers.utils.formatUnits(balance, 18));
     }
-  }
+  };
 
   const deposit = async() => {
     if (atm) {
@@ -74,6 +75,25 @@ export default function HomePage() {
       getBalance();
     }
   }
+
+ // new function
+ 
+ const setNewBalance = async () => {
+  if (atm) {
+    let tx = await atm.setBalance(5);
+    await tx.wait();
+    getBalance();
+  }
+};
+
+const resetBalance = async () => {
+  if (atm) {
+    let tx = await atm.resetBalance();
+    await tx.wait();
+    getBalance();
+  }
+};
+
 
   const initUser = () => {
     // Check to see if user has Metamask
@@ -96,6 +116,9 @@ export default function HomePage() {
         <p>Your Balance: {balance}</p>
         <button onClick={deposit}>Deposit 1 ETH</button>
         <button onClick={withdraw}>Withdraw 1 ETH</button>
+          
+        <button onClick={setNewBalance}>Set Balance to 5 ETH</button>
+        <button onClick={resetBalance}>Reset Balance</button>
       </div>
     )
   }
@@ -112,6 +135,6 @@ export default function HomePage() {
         }
       `}
       </style>
-    </main>
-  )
+    </main>
+  )
 }
