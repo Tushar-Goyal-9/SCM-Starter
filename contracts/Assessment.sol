@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-contract Assessment {
-    address payable public owner;
-    uint256 public balance;
+contract SimpleVoting {
+    address public owner;
+    mapping(address => bool) public voters;
+    mapping(bytes32 => uint256) public votes;
+    bytes32[] public candidates;
+    bool public votingOpen;
 
-    event Deposit(uint256 amount, address indexed depositor);
-    event Withdraw(uint256 amount);
-    event BalanceSet(uint256 newBalance);
-    event BalanceReset();
+    event VoterRegistered(address voter);
+    event VoteCast(address voter, bytes32 candidate);
+    event VotingOpened();
+    event VotingClosed();
+    event CandidateAdded(bytes32 candidate);
 
-    constructor(uint initBalance) payable {
-        owner = payable(msg.sender);
-        balance = initBalance;
+    constructor() {
+        owner = msg.sender;
+        votingOpen = false;
     }
 
     modifier onlyOwner() {
@@ -20,43 +24,46 @@ contract Assessment {
         _;
     }
 
-    function getBalance() public view returns (uint256) {
-        return balance;
+    modifier onlyDuringVoting() {
+        require(votingOpen, "Voting is not open");
+        _;
     }
 
-    function deposit() public payable onlyOwner {
-        require(msg.value > 0, "Deposit amount must be greater than zero");
-
-        balance += msg.value;
-
-        emit Deposit(msg.value, msg.sender);
+    modifier onlyRegisteredVoters() {
+        require(voters[msg.sender], "You are not a registered voter");
+        _;
     }
 
-    error InsufficientBalance(uint256 balance, uint256 withdrawAmount);
-
-    function withdraw(uint256 _withdrawAmount) public onlyOwner {
-        if (balance < _withdrawAmount) {
-            revert InsufficientBalance({
-                balance: balance,
-                withdrawAmount: _withdrawAmount
-            });
-        }
-
-        balance -= _withdrawAmount;
-        (bool success, ) = owner.call{value: _withdrawAmount}("");
-        require(success, "Withdraw failed");
-
-        emit Withdraw(_withdrawAmount);
-    }
-// new functions
-
-    function setBalance(uint256 _newBalance) public onlyOwner {
-        balance = _newBalance;
-        emit BalanceSet(_newBalance);
+    function registerVoter(address _voter) public onlyOwner {
+        voters[_voter] = true;
+        emit VoterRegistered(_voter);
     }
 
-    function resetBalance() public onlyOwner {
-        balance = 0;
-        emit BalanceReset();
+    function addCandidate(bytes32 _candidate) public onlyOwner {
+        candidates.push(_candidate);
+        emit CandidateAdded(_candidate);
+    }
+
+    function openVoting() public onlyOwner {
+        votingOpen = true;
+        emit VotingOpened();
+    }
+
+    function closeVoting() public onlyOwner {
+        votingOpen = false;
+        emit VotingClosed();
+    }
+
+    function vote(bytes32 _candidate) public onlyDuringVoting onlyRegisteredVoters {
+        votes[_candidate] += 1;
+        emit VoteCast(msg.sender, _candidate);
+    }
+
+    function getVotes(bytes32 _candidate) public view returns (uint256) {
+        return votes[_candidate];
+    }
+
+    function getCandidates() public view returns (bytes32[] memory) {
+        return candidates;
     }
 }
