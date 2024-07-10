@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import voting_abi from "../artifacts/contracts/SimpleVoting.sol/SimpleVoting.json";
+import voting_abi from "../artifacts/contracts/Assessment.sol/Assessment.json";
 
 export default function HomePage() {
   const [ethWallet, setEthWallet] = useState(undefined);
