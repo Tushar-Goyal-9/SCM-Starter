@@ -134,13 +134,13 @@ export default function HomePage() {
     }
 
     if (!account) {
-      return <button onClick={getWallet}>Connect MetaMask Wallet</button>
+      return <button onClick={getWallet} className="connect-btn">Connect MetaMask Wallet</button>
     }
 
     return (
       <div className="user-info">
-        <p>Account: {account}</p>
-        <p>Balance: {balance} ETH</p>
+        <p className="account-info">Account: {account}</p>
+        <p className="account-info">Balance: {balance} ETH</p>
         <div className="input-group">
           <input
             type="number"
@@ -149,7 +149,7 @@ export default function HomePage() {
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
           />
-          <button onClick={deposit}>Deposit</button>
+          <button onClick={deposit} className="action-btn">Deposit</button>
         </div>
         <div className="input-group">
           <input
@@ -159,7 +159,7 @@ export default function HomePage() {
             value={withdrawAmount}
             onChange={(e) => setWithdrawAmount(e.target.value)}
           />
-          <button onClick={withdraw}>Withdraw</button>
+          <button onClick={withdraw} className="action-btn">Withdraw</button>
         </div>
         <div className="input-group">
           <input
@@ -169,9 +169,9 @@ export default function HomePage() {
             value={newBalance}
             onChange={(e) => setNewBalance(e.target.value)}
           />
-          <button onClick={setBalanceManually}>Set Balance</button>
+          <button onClick={setBalanceManually} className="action-btn">Set Balance</button>
         </div>
-        <button onClick={resetBalance}>Reset Balance</button>
+        <button onClick={resetBalance} className="action-btn">Reset Balance</button>
         <div className="input-group">
           <input
             type="number"
@@ -186,7 +186,7 @@ export default function HomePage() {
             value={lockDuration}
             onChange={(e) => setLockDuration(e.target.value)}
           />
-          <button onClick={timeLockDeposit}>Time-Lock Deposit</button>
+          <button onClick={timeLockDeposit} className="action-btn">Time-Lock Deposit</button>
         </div>
       </div>
     )
@@ -194,7 +194,7 @@ export default function HomePage() {
 
   return (
     <main className="container">
-      <header><h1>Assessment ATM</h1></header>
+      <header><h1 className="title">Assessment ATM</h1></header>
       {initUser()}
       <style jsx>{`
         .container {
@@ -203,14 +203,52 @@ export default function HomePage() {
           padding: 20px;
           text-align: center;
         }
-        .user-info {
-          margin-top: 20px;
+        .title {
+          font-size: 24px;
+          margin-bottom: 20px;
+        }
+        .connect-btn {
+          background-color: #4CAF50;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 16px;
+          margin-bottom: 10px;
+          cursor: pointer;
+          border-radius: 5px;
+        }
+        .connect-btn:hover, .action-btn:hover {
+          opacity: 0.8;
+        }
+        .account-info {
+          font-size: 18px;
+          margin-bottom: 10px;
         }
         .input-group {
           margin-top: 10px;
         }
         .input-group input, .input-group select {
           margin-right: 10px;
+          padding: 8px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          width: 200px;
+        }
+        .action-btn {
+          background-color: #008CBA;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 16px;
+          margin-top: 10px;
+          cursor: pointer;
+          border-radius: 5px;
         }
       `}</style>
     </main>
