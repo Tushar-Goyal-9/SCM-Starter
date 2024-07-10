@@ -1,300 +1,109 @@
-import { useState, useEffect } from "react";
-import { ethers } from "ethers";
-import assessment_abi from "../artifacts/contracts/Assessment.sol/Assessment.json";
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.9;
 
-export default function HomePage() {
-  const [ethWallet, setEthWallet] = useState(undefined);
-  const [account, setAccount] = useState(undefined);
-  const [atm, setATM] = useState(undefined);
-  const [balance, setBalance] = useState(undefined);
-  
-  const [depositAmount, setDepositAmount] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [newBalance, setNewBalance] = useState("");
-  const [lockAmount, setLockAmount] = useState("");
-  const [lockDuration, setLockDuration] = useState("");
-  const [isClient, setIsClient] = useState(false);
+contract Assessment {
+    address payable public owner;
+    uint256 public balance;
+    mapping(address => uint256) public allowances;
+    mapping(address => uint256) public lockedBalances;
+    mapping(address => uint256) public unlockTimes;
 
-  const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-  const atmABI = assessment_abi.abi;
+    event Deposit(uint256 amount, address indexed depositor);
+    event Withdraw(uint256 amount);
+    event BalanceSet(uint256 newBalance);
+    event BalanceReset();
+    event AllowanceSet(address indexed spender, uint256 amount);
+    event AllowanceUsed(address indexed spender, uint256 amount);
+    event LockedDeposit(address indexed depositor, uint256 amount, uint256 unlockTime);
+    event Unlocked(address indexed depositor, uint256 amount);
 
-  useEffect(() => {
-    setIsClient(true);
-    getWallet();
-  }, []);
-
-  const getWallet = async () => {
-    if (typeof window !== 'undefined' && typeof window.ethereum !== 'undefined') {
-      try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        setEthWallet(window.ethereum);
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const address = await signer.getAddress();
-        setAccount(address);
-        const contract = new ethers.Contract(contractAddress, atmABI, signer);
-        setATM(contract);
-        getBalance(contract);
-      } catch (err) {
-        console.error(err);
-        alert("An error occurred while connecting to the wallet.");
-      }
-    } else {
-      alert('Please install MetaMask to use this ATM.');
-    }
-  }
-
-  const getBalance = async (contract) => {
-    try {
-      const balance = await contract.getBalance();
-      setBalance(ethers.utils.formatEther(balance));
-    } catch (err) {
-      console.error("Error fetching balance:", err);
-    }
-  };
-
-  const deposit = async () => {
-    if (atm && depositAmount) {
-      try {
-        const tx = await atm.deposit({ value: ethers.utils.parseEther(depositAmount) });
-        await tx.wait();
-        getBalance(atm);
-        setDepositAmount("");
-        alert("Deposit successful!");
-      } catch (error) {
-        console.error("Error during deposit:", error);
-        alert("Deposit failed. Make sure you're the owner and the amount is valid.");
-      }
-    }
-  }
-
-  const withdraw = async () => {
-    if (atm && withdrawAmount) {
-      try {
-        const tx = await atm.withdraw(ethers.utils.parseEther(withdrawAmount));
-        await tx.wait();
-        getBalance(atm);
-        setWithdrawAmount("");
-        alert("Withdrawal successful!");
-      } catch (error) {
-        console.error("Error during withdrawal:", error);
-        alert("Withdrawal failed. Make sure you're the owner and have sufficient balance.");
-      }
-    }
-  }
-
-  const setBalanceManually = async () => {
-    if (atm && newBalance) {
-      try {
-        const tx = await atm.setBalance(ethers.utils.parseEther(newBalance));
-        await tx.wait();
-        getBalance(atm);
-        setNewBalance("");
-        alert("Balance set successfully!");
-      } catch (error) {
-        console.error("Error setting balance:", error);
-        alert("Setting balance failed. Make sure you're the owner.");
-      }
-    }
-  };
-
-  const resetBalance = async () => {
-    if (atm) {
-      try {
-        const tx = await atm.resetBalance();
-        await tx.wait();
-        getBalance(atm);
-        alert("Balance reset successfully!");
-      } catch (error) {
-        console.error("Error resetting balance:", error);
-        alert("Resetting balance failed. Make sure you're the owner.");
-      }
-    }
-  };
-
-  const timeLockDeposit = async () => {
-    if (atm && lockAmount && lockDuration) {
-      try {
-        const tx = await atm.timeLockDeposit(lockDuration, { value: ethers.utils.parseEther(lockAmount) });
-        await tx.wait();
-        getBalance(atm);
-        setLockAmount("");
-        setLockDuration("");
-        alert("Time-locked deposit successful!");
-      } catch (error) {
-        console.error("Error during time-locked deposit:", error);
-        alert("Time-locked deposit failed. Make sure you're the owner and the parameters are valid.");
-      }
-    }
-  };
-
-  const initUser = () => {
-    if (!isClient) {
-      return null;
+    constructor(uint initBalance) payable {
+        owner = payable(msg.sender);
+        balance = initBalance;
     }
 
-    if (!account) {
-      return <button onClick={getWallet} className="connect-btn">Connect MetaMask Wallet</button>
+    modifier onlyOwner() {
+        require(msg.sender == owner, "You are not the owner");
+        _;
     }
 
-    return (
-      <div className="user-info">
-        <div className="account-box">
-          <p className="account-info">Account: {account}</p>
-          <p className="account-info">Balance: {balance} ETH</p>
-        </div>
-        <div className="action-box">
-          <div className="input-group">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Deposit amount in ETH"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-            />
-            <button onClick={deposit} className="action-btn">Deposit</button>
-          </div>
-          <div className="input-group">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Withdraw amount in ETH"
-              value={withdrawAmount}
-              onChange={(e) => setWithdrawAmount(e.target.value)}
-            />
-            <button onClick={withdraw} className="action-btn">Withdraw</button>
-          </div>
-          <div className="input-group">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Set new balance in ETH"
-              value={newBalance}
-              onChange={(e) => setNewBalance(e.target.value)}
-            />
-            <button onClick={setBalanceManually} className="action-btn">Set Balance</button>
-          </div>
-          <button onClick={resetBalance} className="action-btn">Reset Balance</button>
-          <div className="input-group">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Lock amount in ETH"
-              value={lockAmount}
-              onChange={(e) => setLockAmount(e.target.value)}
-            />
-            <input
-              type="number"
-              placeholder="Lock duration in seconds"
-              value={lockDuration}
-              onChange={(e) => setLockDuration(e.target.value)}
-            />
-            <button onClick={timeLockDeposit} className="action-btn">Time-Lock Deposit</button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+    function getBalance() public view returns (uint256) {
+        return balance;
+    }
 
-  return (
-    <main className="container">
-      <header><h1 className="title">Assessment ATM</h1></header>
-      {initUser()}
-      <style jsx>{`
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 20px;
-          text-align: center;
-          background-color: #f0f0f0;
-          border-radius: 10px;
-          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    function deposit() public payable onlyOwner {
+        require(msg.value > 0, "Deposit amount must be greater than zero");
+
+        balance += msg.value;
+
+        emit Deposit(msg.value, msg.sender);
+    }
+
+    error InsufficientBalance(uint256 balance, uint256 withdrawAmount);
+
+    function withdraw(uint256 _withdrawAmount) public onlyOwner {
+        if (balance < _withdrawAmount) {
+            revert InsufficientBalance({
+                balance: balance,
+                withdrawAmount: _withdrawAmount
+            });
         }
-        .title {
-          font-size: 24px;
-          margin-bottom: 20px;
-          color: #333;
-        }
-        .connect-btn {
-          background-color: #4CAF50;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          text-align: center;
-          text-decoration: none;
-          display: inline-block;
-          font-size: 16px;
-          margin-bottom: 10px;
-          cursor: pointer;
-          border-radius: 5px;
-          border: 1px solid #4CAF50;
-          transition: opacity 0.3s ease-in-out;
-        }
-        .connect-btn:hover, .action-btn:hover {
-          opacity: 0.8;
-        }
-        .account-box {
-          background-color: #fff;
-          padding: 20px;
-          border-radius: 10px;
-          margin-bottom: 20px;
-          box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
-        }
-        .account-info {
-          font-size: 18px;
-          margin-bottom: 10px;
-          color: #333;
-        }
-        .action-box {
-          background-color: #fff;
-          padding: 20px;
-          border-radius: 10px;
-          box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
-        }
-        .input-group {
-          margin-top: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .input-group input {
-          padding: 10px;
-          border: 1px solid #ccc;
-          border-radius: 5px;
-          width: 150px;
-          margin-right: 10px;
-        }
-        .action-btn {
-          background-color: #008CBA;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          text-align: center;
-          text-decoration: none;
-          display: inline-block;
-          font-size: 16px;
-          margin-top: 10px;
-          cursor: pointer;
-          border-radius: 5px;
-          transition: opacity 0.3s ease-in-out;
-        }
-        .action-btn:last-child {
-          margin-left: 10px;
-        }
-        @media only screen and (max-width: 600px) {
-          .container {
-            padding: 10px;
-          }
-          .input-group {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .input-group input {
-            width: 100%;
-            margin-bottom: 10px;
-          }
-        }
-      `}</style>
-    </main>
-  )
+
+        balance -= _withdrawAmount;
+        (bool success, ) = owner.call{value: _withdrawAmount}("");
+        require(success, "Withdraw failed");
+
+        emit Withdraw(_withdrawAmount);
+    }
+
+    function setBalance(uint256 _newBalance) public onlyOwner {
+        balance = _newBalance;
+        emit BalanceSet(_newBalance);
+    }
+
+    function resetBalance() public onlyOwner {
+        balance = 0;
+        emit BalanceReset();
+    }
+
+    function setAllowance(address _spender, uint256 _amount) public onlyOwner {
+        allowances[_spender] = _amount;
+        emit AllowanceSet(_spender, _amount);
+    }
+
+    function useAllowance(uint256 _amount) public {
+        require(allowances[msg.sender] >= _amount, "Allowance exceeded");
+        require(balance >= _amount, "Insufficient balance");
+
+        allowances[msg.sender] -= _amount;
+        balance -= _amount;
+        (bool success, ) = payable(msg.sender).call{value: _amount}("");
+        require(success, "Transfer failed");
+
+        emit AllowanceUsed(msg.sender, _amount);
+    }
+
+    // New function: Time-locked deposit
+    function timeLockedDeposit(uint256 _unlockTime) public payable {
+        require(msg.value > 0, "Deposit amount must be greater than zero");
+        require(_unlockTime > block.timestamp, "Unlock time must be in the future");
+
+        lockedBalances[msg.sender] += msg.value;
+        unlockTimes[msg.sender] = _unlockTime;
+
+        emit LockedDeposit(msg.sender, msg.value, _unlockTime);
+    }
+
+    function unlock() public {
+        require(block.timestamp >= unlockTimes[msg.sender], "Funds are still locked");
+        uint256 amount = lockedBalances[msg.sender];
+        require(amount > 0, "No funds to unlock");
+
+        lockedBalances[msg.sender] = 0;
+        unlockTimes[msg.sender] = 0;
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Unlock failed");
+
+        emit Unlocked(msg.sender, amount);
+    }
 }
