@@ -175,7 +175,7 @@ export default function HomePage() {
 
   return (
     <main className="container">
-      <header><h1>MetaCrafters Voting System</h1></header>
+      <header><h1>Simple Voting System</h1></header>
       {initUser()}
       <style jsx>{`
         .container {
