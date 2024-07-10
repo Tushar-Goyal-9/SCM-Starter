@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import atm_abi from "../artifacts/contracts/Assessment.sol/Assessment.json";
+import assessment_abi from "../artifacts/contracts/Assessment.sol/Assessment.json";
 
 export default function HomePage() {
   const [ethWallet, setEthWallet] = useState(undefined);
@@ -14,10 +14,9 @@ export default function HomePage() {
   const [lockAmount, setLockAmount] = useState("");
   const [lockDuration, setLockDuration] = useState("");
   const [isClient, setIsClient] = useState(false);
-  const [owner, setOwner] = useState("");
 
-  const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-  const atmABI = atm_abi.abi;
+  const contractAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+  const atmABI = assessment_abi.abi;
 
   useEffect(() => {
     setIsClient(true);
@@ -36,22 +35,12 @@ export default function HomePage() {
         const contract = new ethers.Contract(contractAddress, atmABI, signer);
         setATM(contract);
         getBalance(contract);
-        fetchOwner(contract);
       } catch (err) {
         console.error(err);
         alert("An error occurred while connecting to the wallet.");
       }
     } else {
       alert('Please install MetaMask to use this ATM.');
-    }
-  }
-
-  const fetchOwner = async (contract) => {
-    try {
-      const owner = await contract.owner();
-      setOwner(owner);
-    } catch (err) {
-      console.error("Error fetching owner:", err);
     }
   }
 
@@ -80,7 +69,7 @@ export default function HomePage() {
   }
 
   const withdraw = async () => {
-    if (atm && withdrawAmount && account === owner) {
+    if (atm && withdrawAmount) {
       try {
         const tx = await atm.withdraw(ethers.utils.parseEther(withdrawAmount));
         await tx.wait();
@@ -91,13 +80,11 @@ export default function HomePage() {
         console.error("Error during withdrawal:", error);
         alert("Withdrawal failed. Make sure you're the owner and have sufficient balance.");
       }
-    } else {
-      alert("Only the owner can withdraw.");
     }
   }
 
   const setBalanceManually = async () => {
-    if (atm && newBalance && account === owner) {
+    if (atm && newBalance) {
       try {
         const tx = await atm.setBalance(ethers.utils.parseEther(newBalance));
         await tx.wait();
@@ -108,13 +95,11 @@ export default function HomePage() {
         console.error("Error setting balance:", error);
         alert("Setting balance failed. Make sure you're the owner.");
       }
-    } else {
-      alert("Only the owner can set the balance.");
     }
   };
 
   const resetBalance = async () => {
-    if (atm && account === owner) {
+    if (atm) {
       try {
         const tx = await atm.resetBalance();
         await tx.wait();
@@ -124,13 +109,11 @@ export default function HomePage() {
         console.error("Error resetting balance:", error);
         alert("Resetting balance failed. Make sure you're the owner.");
       }
-    } else {
-      alert("Only the owner can reset the balance.");
     }
   };
 
   const timeLockDeposit = async () => {
-    if (atm && lockAmount && lockDuration && account === owner) {
+    if (atm && lockAmount && lockDuration) {
       try {
         const tx = await atm.timeLockDeposit(lockDuration, { value: ethers.utils.parseEther(lockAmount) });
         await tx.wait();
@@ -142,8 +125,6 @@ export default function HomePage() {
         console.error("Error during time-locked deposit:", error);
         alert("Time-locked deposit failed. Make sure you're the owner and the parameters are valid.");
       }
-    } else {
-      alert("Only the owner can perform a time-locked deposit.");
     }
   };
 
