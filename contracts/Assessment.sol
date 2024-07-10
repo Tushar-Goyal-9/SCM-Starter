@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import atm_abi from "../artifacts/contracts/Assessment.sol/Assessment.json";
+import assessment_abi from "../artifacts/contracts/Assessment.sol/Assessment.json";
 
 export default function HomePage() {
   const [ethWallet, setEthWallet] = useState(undefined);
@@ -16,7 +16,7 @@ export default function HomePage() {
   const [isClient, setIsClient] = useState(false);
 
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-  const atmABI = atm_abi.abi;
+  const atmABI = assessment_abi.abi;
 
   useEffect(() => {
     setIsClient(true);
@@ -139,54 +139,58 @@ export default function HomePage() {
 
     return (
       <div className="user-info">
-        <p className="account-info">Account: {account}</p>
-        <p className="account-info">Balance: {balance} ETH</p>
-        <div className="input-group">
-          <input
-            type="number"
-            step="0.01"
-            placeholder="Deposit amount in ETH"
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-          />
-          <button onClick={deposit} className="action-btn">Deposit</button>
+        <div className="account-box">
+          <p className="account-info">Account: {account}</p>
+          <p className="account-info">Balance: {balance} ETH</p>
         </div>
-        <div className="input-group">
-          <input
-            type="number"
-            step="0.01"
-            placeholder="Withdraw amount in ETH"
-            value={withdrawAmount}
-            onChange={(e) => setWithdrawAmount(e.target.value)}
-          />
-          <button onClick={withdraw} className="action-btn">Withdraw</button>
-        </div>
-        <div className="input-group">
-          <input
-            type="number"
-            step="0.01"
-            placeholder="Set new balance in ETH"
-            value={newBalance}
-            onChange={(e) => setNewBalance(e.target.value)}
-          />
-          <button onClick={setBalanceManually} className="action-btn">Set Balance</button>
-        </div>
-        <button onClick={resetBalance} className="action-btn">Reset Balance</button>
-        <div className="input-group">
-          <input
-            type="number"
-            step="0.01"
-            placeholder="Lock amount in ETH"
-            value={lockAmount}
-            onChange={(e) => setLockAmount(e.target.value)}
-          />
-          <input
-            type="number"
-            placeholder="Lock duration in seconds"
-            value={lockDuration}
-            onChange={(e) => setLockDuration(e.target.value)}
-          />
-          <button onClick={timeLockDeposit} className="action-btn">Time-Lock Deposit</button>
+        <div className="action-box">
+          <div className="input-group">
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Deposit amount in ETH"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+            />
+            <button onClick={deposit} className="action-btn">Deposit</button>
+          </div>
+          <div className="input-group">
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Withdraw amount in ETH"
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
+            />
+            <button onClick={withdraw} className="action-btn">Withdraw</button>
+          </div>
+          <div className="input-group">
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Set new balance in ETH"
+              value={newBalance}
+              onChange={(e) => setNewBalance(e.target.value)}
+            />
+            <button onClick={setBalanceManually} className="action-btn">Set Balance</button>
+          </div>
+          <button onClick={resetBalance} className="action-btn">Reset Balance</button>
+          <div className="input-group">
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Lock amount in ETH"
+              value={lockAmount}
+              onChange={(e) => setLockAmount(e.target.value)}
+            />
+            <input
+              type="number"
+              placeholder="Lock duration in seconds"
+              value={lockDuration}
+              onChange={(e) => setLockDuration(e.target.value)}
+            />
+            <button onClick={timeLockDeposit} className="action-btn">Time-Lock Deposit</button>
+          </div>
         </div>
       </div>
     )
@@ -202,10 +206,14 @@ export default function HomePage() {
           margin: 0 auto;
           padding: 20px;
           text-align: center;
+          background-color: #f0f0f0;
+          border-radius: 10px;
+          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
         }
         .title {
           font-size: 24px;
           margin-bottom: 20px;
+          color: #333;
         }
         .connect-btn {
           background-color: #4CAF50;
@@ -219,23 +227,42 @@ export default function HomePage() {
           margin-bottom: 10px;
           cursor: pointer;
           border-radius: 5px;
+          border: 1px solid #4CAF50;
+          transition: opacity 0.3s ease-in-out;
         }
         .connect-btn:hover, .action-btn:hover {
           opacity: 0.8;
         }
+        .account-box {
+          background-color: #fff;
+          padding: 20px;
+          border-radius: 10px;
+          margin-bottom: 20px;
+          box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
         .account-info {
           font-size: 18px;
           margin-bottom: 10px;
+          color: #333;
+        }
+        .action-box {
+          background-color: #fff;
+          padding: 20px;
+          border-radius: 10px;
+          box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
         }
         .input-group {
           margin-top: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
-        .input-group input, .input-group select {
-          margin-right: 10px;
-          padding: 8px;
+        .input-group input {
+          padding: 10px;
           border: 1px solid #ccc;
-          border-radius: 4px;
-          width: 200px;
+          border-radius: 5px;
+          width: 150px;
+          margin-right: 10px;
         }
         .action-btn {
           background-color: #008CBA;
@@ -249,6 +276,23 @@ export default function HomePage() {
           margin-top: 10px;
           cursor: pointer;
           border-radius: 5px;
+          transition: opacity 0.3s ease-in-out;
+        }
+        .action-btn:last-child {
+          margin-left: 10px;
+        }
+        @media only screen and (max-width: 600px) {
+          .container {
+            padding: 10px;
+          }
+          .input-group {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .input-group input {
+            width: 100%;
+            margin-bottom: 10px;
+          }
         }
       `}</style>
     </main>
