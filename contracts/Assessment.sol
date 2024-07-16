@@ -4,18 +4,12 @@ pragma solidity ^0.8.9;
 contract Assessment {
     address payable public owner;
     uint256 public balance;
-    mapping(address => uint256) public allowances;
-    mapping(address => uint256) public lockedBalances;
-    mapping(address => uint256) public unlockTimes;
+    bool public frozen;
 
-    event Deposit(uint256 amount, address indexed depositor);
+    event Deposit(uint256 amount);
     event Withdraw(uint256 amount);
-    event BalanceSet(uint256 newBalance);
-    event BalanceReset();
-    event AllowanceSet(address indexed spender, uint256 amount);
-    event AllowanceUsed(address indexed spender, uint256 amount);
-    event LockedDeposit(address indexed depositor, uint256 amount, uint256 unlockTime);
-    event Unlocked(address indexed depositor, uint256 amount);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event AccountFrozen(bool frozen);
 
     constructor(uint initBalance) payable {
         owner = payable(msg.sender);
@@ -23,25 +17,37 @@ contract Assessment {
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "You are not the owner");
+        require(msg.sender == owner, "You are not the owner of this account");
         _;
     }
 
-    function getBalance() public view returns (uint256) {
+    modifier notFrozen() {
+        require(!frozen, "Account is frozen");
+        _;
+    }
+
+    function getBalance() public view returns(uint256) {
         return balance;
     }
 
-    function deposit() public payable onlyOwner {
-        require(msg.value > 0, "Deposit amount must be greater than zero");
+    function deposit(uint256 _amount) public payable onlyOwner notFrozen {
+        uint _previousBalance = balance;
 
-        balance += msg.value;
+        // perform transaction
+        balance += _amount;
 
-        emit Deposit(msg.value, msg.sender);
+        // assert transaction completed successfully
+        assert(balance == _previousBalance + _amount);
+
+        // emit the event
+        emit Deposit(_amount);
     }
 
+    // custom error
     error InsufficientBalance(uint256 balance, uint256 withdrawAmount);
 
-    function withdraw(uint256 _withdrawAmount) public onlyOwner {
+    function withdraw(uint256 _withdrawAmount) public onlyOwner notFrozen {
+        uint _previousBalance = balance;
         if (balance < _withdrawAmount) {
             revert InsufficientBalance({
                 balance: balance,
@@ -49,61 +55,42 @@ contract Assessment {
             });
         }
 
+        // withdraw the given amount
         balance -= _withdrawAmount;
-        (bool success, ) = owner.call{value: _withdrawAmount}("");
-        require(success, "Withdraw failed");
 
+        // assert the balance is correct
+        assert(balance == (_previousBalance - _withdrawAmount));
+
+        // emit the event
         emit Withdraw(_withdrawAmount);
     }
 
-    function setBalance(uint256 _newBalance) public onlyOwner {
+    function setBalance(uint256 _newBalance) public onlyOwner notFrozen {
         balance = _newBalance;
-        emit BalanceSet(_newBalance);
     }
 
-    function resetBalance() public onlyOwner {
+    function resetBalance() public onlyOwner notFrozen {
         balance = 0;
-        emit BalanceReset();
     }
 
-    function setAllowance(address _spender, uint256 _amount) public onlyOwner {
-        allowances[_spender] = _amount;
-        emit AllowanceSet(_spender, _amount);
+    function transferOwnership(address payable _newOwner) public onlyOwner {
+        require(_newOwner != address(0), "New owner is the zero address");
+        emit OwnershipTransferred(owner, _newOwner);
+        owner = _newOwner;
     }
 
-    function useAllowance(uint256 _amount) public {
-        require(allowances[msg.sender] >= _amount, "Allowance exceeded");
-        require(balance >= _amount, "Insufficient balance");
-
-        allowances[msg.sender] -= _amount;
-        balance -= _amount;
-        (bool success, ) = payable(msg.sender).call{value: _amount}("");
-        require(success, "Transfer failed");
-
-        emit AllowanceUsed(msg.sender, _amount);
+    function freezeAccount() public onlyOwner {
+        frozen = true;
+        emit AccountFrozen(frozen);
     }
 
-    // New function: Time-locked deposit
-    function timeLockedDeposit(uint256 _unlockTime) public payable {
-        require(msg.value > 0, "Deposit amount must be greater than zero");
-        require(_unlockTime > block.timestamp, "Unlock time must be in the future");
-
-        lockedBalances[msg.sender] += msg.value;
-        unlockTimes[msg.sender] = _unlockTime;
-
-        emit LockedDeposit(msg.sender, msg.value, _unlockTime);
+    function unfreezeAccount() public onlyOwner {
+        frozen = false;
+        emit AccountFrozen(frozen);
     }
 
-    function unlock() public {
-        require(block.timestamp >= unlockTimes[msg.sender], "Funds are still locked");
-        uint256 amount = lockedBalances[msg.sender];
-        require(amount > 0, "No funds to unlock");
-
-        lockedBalances[msg.sender] = 0;
-        unlockTimes[msg.sender] = 0;
-        (bool success, ) = payable(msg.sender).call{value: amount}("");
-        require(success, "Unlock failed");
-
-        emit Unlocked(msg.sender, amount);
+    function increaseContractBalance() public payable {
+        // This function allows anyone to increase the contract's balance
+        // without changing the balance state variable
     }
 }

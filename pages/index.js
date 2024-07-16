@@ -7,12 +7,11 @@ export default function HomePage() {
   const [account, setAccount] = useState(undefined);
   const [atm, setATM] = useState(undefined);
   const [balance, setBalance] = useState(undefined);
-  
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [newBalance, setNewBalance] = useState("");
-  const [lockAmount, setLockAmount] = useState("");
-  const [lockDuration, setLockDuration] = useState("");
+  const [newOwner, setNewOwner] = useState("");
+  const [isFrozen, setIsFrozen] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
@@ -35,6 +34,7 @@ export default function HomePage() {
         const contract = new ethers.Contract(contractAddress, atmABI, signer);
         setATM(contract);
         getBalance(contract);
+        checkFrozenStatus(contract);
       } catch (err) {
         console.error(err);
         alert("An error occurred while connecting to the wallet.");
@@ -53,10 +53,19 @@ export default function HomePage() {
     }
   };
 
+  const checkFrozenStatus = async (contract) => {
+    try {
+      const frozen = await contract.frozen();
+      setIsFrozen(frozen);
+    } catch (err) {
+      console.error("Error checking frozen status:", err);
+    }
+  };
+
   const deposit = async () => {
     if (atm && depositAmount) {
       try {
-        const tx = await atm.deposit({ value: ethers.utils.parseEther(depositAmount) });
+        const tx = await atm.deposit(ethers.utils.parseEther(depositAmount));
         await tx.wait();
         getBalance(atm);
         setDepositAmount("");
@@ -112,18 +121,43 @@ export default function HomePage() {
     }
   };
 
-  const timeLockDeposit = async () => {
-    if (atm && lockAmount && lockDuration) {
+  const transferOwnership = async () => {
+    if (atm && newOwner) {
       try {
-        const tx = await atm.timeLockDeposit(lockDuration, { value: ethers.utils.parseEther(lockAmount) });
+        const tx = await atm.transferOwnership(newOwner);
         await tx.wait();
-        getBalance(atm);
-        setLockAmount("");
-        setLockDuration("");
-        alert("Time-locked deposit successful!");
+        alert("Ownership transferred successfully!");
       } catch (error) {
-        console.error("Error during time-locked deposit:", error);
-        alert("Time-locked deposit failed. Make sure you're the owner and the parameters are valid.");
+        console.error("Error transferring ownership:", error);
+        alert("Ownership transfer failed. Make sure you're the owner.");
+      }
+    }
+  };
+
+  const freezeAccount = async () => {
+    if (atm) {
+      try {
+        const tx = await atm.freezeAccount();
+        await tx.wait();
+        checkFrozenStatus(atm);
+        alert("Account frozen successfully!");
+      } catch (error) {
+        console.error("Error freezing account:", error);
+        alert("Freezing account failed. Make sure you're the owner.");
+      }
+    }
+  };
+
+  const unfreezeAccount = async () => {
+    if (atm) {
+      try {
+        const tx = await atm.unfreezeAccount();
+        await tx.wait();
+        checkFrozenStatus(atm);
+        alert("Account unfrozen successfully!");
+      } catch (error) {
+        console.error("Error unfreezing account:", error);
+        alert("Unfreezing account failed. Make sure you're the owner.");
       }
     }
   };
@@ -139,66 +173,58 @@ export default function HomePage() {
 
     return (
       <div className="user-info">
-        <div className="account-box">
-          <p className="account-info">Account: {account}</p>
-          <p className="account-info">Balance: {balance} ETH</p>
+        <p>Account: {account}</p>
+        <p>Balance: {balance} ETH</p>
+        <p>Status: {isFrozen ? "Frozen" : "Active"}</p>
+        <div className="input-group">
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Deposit amount in ETH"
+            value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
+          />
+          <button onClick={deposit} className="action-btn">Deposit</button>
         </div>
-        <div className="action-box">
-          <div className="input-group">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Deposit amount in ETH"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-            />
-            <button onClick={deposit} className="action-btn">Deposit</button>
-          </div>
-          <div className="input-group">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Withdraw amount in ETH"
-              value={withdrawAmount}
-              onChange={(e) => setWithdrawAmount(e.target.value)}
-            />
-            <button onClick={withdraw} className="action-btn">Withdraw</button>
-          </div>
-          <div className="input-group">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Set new balance in ETH"
-              value={newBalance}
-              onChange={(e) => setNewBalance(e.target.value)}
-            />
-            <button onClick={setBalanceManually} className="action-btn">Set Balance</button>
-          </div>
-          <button onClick={resetBalance} className="action-btn">Reset Balance</button>
-          <div className="input-group">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Lock amount in ETH"
-              value={lockAmount}
-              onChange={(e) => setLockAmount(e.target.value)}
-            />
-            <input
-              type="number"
-              placeholder="Lock duration in seconds"
-              value={lockDuration}
-              onChange={(e) => setLockDuration(e.target.value)}
-            />
-            <button onClick={timeLockDeposit} className="action-btn">Time-Lock Deposit</button>
-          </div>
+        <div className="input-group">
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Withdraw amount in ETH"
+            value={withdrawAmount}
+            onChange={(e) => setWithdrawAmount(e.target.value)}
+          />
+          <button onClick={withdraw} className="action-btn">Withdraw</button>
         </div>
+        <div className="input-group">
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Set new balance in ETH"
+            value={newBalance}
+            onChange={(e) => setNewBalance(e.target.value)}
+          />
+          <button onClick={setBalanceManually} className="action-btn">Set Balance</button>
+        </div>
+        <button onClick={resetBalance} className="action-btn">Reset Balance</button>
+        <div className="input-group">
+          <input
+            type="text"
+            placeholder="New owner address"
+            value={newOwner}
+            onChange={(e) => setNewOwner(e.target.value)}
+          />
+          <button onClick={transferOwnership} className="action-btn">Transfer Ownership</button>
+        </div>
+        <button onClick={freezeAccount} className="action-btn">Freeze Account</button>
+        <button onClick={unfreezeAccount} className="action-btn">Unfreeze Account</button>
       </div>
     )
   }
 
   return (
     <main className="container">
-      <header><h1 className="title">Assessment ATM</h1></header>
+      <header><h1>Assessment ATM</h1></header>
       {initUser()}
       <style jsx>{`
         .container {
@@ -206,93 +232,43 @@ export default function HomePage() {
           margin: 0 auto;
           padding: 20px;
           text-align: center;
-          background-color: #f0f0f0;
+          background-color: #f9f9f9;
           border-radius: 10px;
-          box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
-        .title {
-          font-size: 24px;
+        header {
           margin-bottom: 20px;
-          color: #333;
         }
-        .connect-btn {
-          background-color: #4CAF50;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          text-align: center;
-          text-decoration: none;
-          display: inline-block;
-          font-size: 16px;
-          margin-bottom: 10px;
-          cursor: pointer;
-          border-radius: 5px;
-          border: 1px solid #4CAF50;
-          transition: opacity 0.3s ease-in-out;
-        }
-        .connect-btn:hover, .action-btn:hover {
-          opacity: 0.8;
-        }
-        .account-box {
-          background-color: #fff;
-          padding: 20px;
-          border-radius: 10px;
-          margin-bottom: 20px;
-          box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
-        }
-        .account-info {
-          font-size: 18px;
-          margin-bottom: 10px;
-          color: #333;
-        }
-        .action-box {
-          background-color: #fff;
-          padding: 20px;
-          border-radius: 10px;
-          box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        .user-info {
+          margin-top: 20px;
         }
         .input-group {
           margin-top: 10px;
           display: flex;
-          align-items: center;
           justify-content: center;
+          align-items: center;
         }
         .input-group input {
+          margin-right: 10px;
           padding: 10px;
           border: 1px solid #ccc;
           border-radius: 5px;
-          width: 150px;
-          margin-right: 10px;
+          flex: 1;
         }
-        .action-btn {
-          background-color: #008CBA;
-          color: white;
-          border: none;
+        .action-btn, .connect-btn {
           padding: 10px 20px;
-          text-align: center;
-          text-decoration: none;
-          display: inline-block;
-          font-size: 16px;
-          margin-top: 10px;
-          cursor: pointer;
+          border: none;
           border-radius: 5px;
-          transition: opacity 0.3s ease-in-out;
+          cursor: pointer;
+          background-color: #007bff;
+          color: #fff;
+          transition: background-color 0.3s ease;
         }
-        .action-btn:last-child {
-          margin-left: 10px;
+        .action-btn:hover, .connect-btn:hover {
+          background-color: #0056b3;
         }
-        @media only screen and (max-width: 600px) {
-          .container {
-            padding: 10px;
-          }
-          .input-group {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .input-group input {
-            width: 100%;
-            margin-bottom: 10px;
-          }
+        p {
+          margin: 5px 0;
         }
       `}</style>
     </main>
