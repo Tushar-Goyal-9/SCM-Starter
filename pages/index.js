@@ -12,6 +12,7 @@ export default function HomePage() {
   const [newBalance, setNewBalance] = useState("");
   const [newOwner, setNewOwner] = useState("");
   const [isFrozen, setIsFrozen] = useState(false);
+  const [contractOwner, setContractOwner] = useState("");
   const [isClient, setIsClient] = useState(false);
 
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
@@ -34,6 +35,7 @@ export default function HomePage() {
         const contract = new ethers.Contract(contractAddress, atmABI, signer);
         setATM(contract);
         getBalance(contract);
+        getContractOwner(contract);
         checkFrozenStatus(contract);
       } catch (err) {
         console.error(err);
@@ -50,6 +52,15 @@ export default function HomePage() {
       setBalance(ethers.utils.formatEther(balance));
     } catch (err) {
       console.error("Error fetching balance:", err);
+    }
+  };
+
+  const getContractOwner = async (contract) => {
+    try {
+      const owner = await contract.getOwner();
+      setContractOwner(owner);
+    } catch (err) {
+      console.error("Error fetching owner:", err);
     }
   };
 
@@ -173,7 +184,8 @@ export default function HomePage() {
 
     return (
       <div className="user-info">
-        <p>Account: {account}</p>
+        <p>Connected Account: {account}</p>
+        <p>Contract Owner: {contractOwner}</p>
         <p>Balance: {balance} ETH</p>
         <p>Status: {isFrozen ? "Frozen" : "Active"}</p>
         <div className="input-group">
